@@ -1,32 +1,30 @@
 num = int(input("input your number: "))
 
-def powerOf2(number):
-    return number && (!(number&(number-1)))
 
-def makeTermString(start,end):
+def makeTermString(start, end):
     termString = ""
     for num in range(start, end+1):
         if num != end:
             termString += str(num) + "+"
-        else: 
+        else:
             termString += str(num)
-
     return termString
 
-def summable(number):
-    if number > 0:
-        if number == 1:
-            return("Not Summable")
-        elif number % 2 == 1:
-            start = number // 2
-            end = start + 1
-            return(str(smaller) + " " + str(smaller+1)) 
-        else:
-            if powerOf2(number):
-                return("Not Summable")
-            else:
 
-    else:
-        return("Not Summable")
+def summable(number):
+    oddDivisor = number
+    while oddDivisor % 2 == 0:
+        oddDivisor = oddDivisor // 2
+
+    if oddDivisor == 1:
+        return("Summation not possible")
+
+    pivot = number // oddDivisor
+    start = number - pivot
+    if start <= 0:
+        start = -start + 1
+    end = pivot + oddDivisor // 2
+    return(makeTermString(start, end))
+
 
 print(summable(num))
