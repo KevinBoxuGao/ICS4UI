@@ -1,0 +1,4 @@
+The sum of column 1 is 13.5
+The sum of column 2 is 37.2
+The sum of column 3 is 12.5
+The sum of column 4 is 26.166666
