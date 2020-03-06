@@ -1,20 +1,26 @@
-int n = 200;
+//change these
+int gridWidth = 200;
+int framesPerSecond = 60;
+int villages = 5;
+
+//don't change these
 boolean[][] cellsNow;
 boolean[][] cellsNext;
-
+int[][] cellHealth;
 float cellSize;
 float padding = 50;
-int blinksPerSecond = 60;
+
+float currentTemp;
+
 
 void setup(){
-  cellsNow = new boolean[n][n];
-  cellsNext = new boolean[n][n];
+  cellsNow = new boolean[gridWidth][gridWidth];
+  cellsNext = new boolean[gridWidth][gridWidth];
+  cellsHealth = new boolean[gridWidth][gridWidth];
+  cellSize = (width-2*padding)/gridWidth;
   size(1000,1000);
-  cellSize = (width-2*padding)/n;
-  frameRate( blinksPerSecond );
-  //setCellValuesRandomly();
-  //setSquare();
-  setCheckerBoard(100);
+  frameRate( framesPerSecond );
+  //setInitialLand();
 }
 
 void draw() {
@@ -22,26 +28,20 @@ void draw() {
     
   float y = padding;
   
-  for(int i=0; i<n; i++) {
-    for(int j=0; j<n; j++) {
+  for(int i=0; i<gridWidth; i++) {
+    for(int j=0; j<gridWidth; j++) {
       float x = padding + j*cellSize;
-      
       if (cellsNow[i][j])
         fill(255);
-        
       else
         fill(0);
-        
       rect(x, y, cellSize, cellSize);
     }
     y += cellSize;
   }
-  
-  //setCellValuesRandomly();
-  getNextGenerationUsingGOLRules();
-  //and then overwrite cellsNow with cellsNext
 }
 
+/*
 int directions[][] = {{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1,-1}, {1,0}, {1,1}};
 
 int findNeighbours(int row, int column) {
@@ -87,28 +87,7 @@ void getNextGenerationUsingGOLRules() {
 
 
 //set up boards
-void setCheckerBoard(int m) {
-  int startX = (n / 2) - (m / 2);
-  int endX = (n / 2) + (m / 2);
-  for(int i=startX; i<endX; i++) {
-    for(int j=startX; j<endX; j++) {      
-      if((i+j) % 2 == 0) {
-        cellsNow[i][j] = true;
-      } else {
-        cellsNow[i][j] = false;
-      }
-    }
-  }
-}
+void setInitialLand(int m) {
 
-void setCellValuesRandomly() {
-  for(int i=0; i<n; i++) {
-    for(int j=0; j<n; j++) {      
-      int x = round(random(0,1));
-      if (x == 0)
-        cellsNow[i][j] = false;
-      else
-        cellsNow[i][j] = true;
-    }
-  }
 }
+*/
