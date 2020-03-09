@@ -2,10 +2,11 @@ import java.util.Iterator;
 import java.util.HashSet;
 
 //change these
+String climate="arid"; //can be {"temperate", "arid", "dampTropical", "mildMediterranean", "tundra"}
 int gridWidth = 20;
-int framesPerSecond = 10;
+int framesPerSecond = 15;
 int numVillages = 10;
-float temperatureImpact = 1.5;
+float temperatureImpact = 1;
 int sustainabilityThreshHold = 400;
 
 //don't change these
@@ -18,13 +19,17 @@ int[][] villageCoords;
 boolean evolution = true; //bool for which phase of evolution is occuring
 
 float currentTemp = 2;
-float tempIncreasePerYear = 0.2/12;
+float tempIncreasePerYear = 0.02/12;
 float currentTempIncrease = 0;
 int currentMonth = 0;
+//climate settings
+int a;
+float vs;
+
 
 //global warming stats
 float getCurrentTemperature(int month) {
-  return -5*cos((PI/12)*(month)) + 7 + currentTempIncrease;
+  return -a*cos((PI/12)*(month)) + vs + currentTempIncrease;
 }
 
 //utility functions
@@ -80,13 +85,35 @@ int[] neighbourAverage(int row, int column) {
 
 
 void setup(){
+  //set temperature variables for land
+  //{"temperate", "arid", "dampTropical", "mildMediterranean", "tundra"}
+  if(climate.equals("temperate")) {
+    a = ;
+    vs = ;
+  } else if(climate.equals("arid")) {
+    a = ;
+    vs = ;
+  } else if(climate.equals("dampTopical")) {
+    a = ;
+    vs = ;
+  } else if(climate.equals("mildMediterranean")) {
+    a = ;
+    vs = ;
+  } else if(climate.equals("tundra")) {
+    a = ;
+    vs = ;
+  } else {
+    println("");
+    exit();
+  }
+  
   cellsNow = new color[gridWidth][gridWidth];
   healthNow = new int[gridWidth][gridWidth];
   healthNext = new int[gridWidth][gridWidth];
   villageCoords = new int[numVillages][2];
   cellSize = (height-2*padding-100)/gridWidth;
   size(1000,800);
-  frameRate( framesPerSecond );
+  frameRate( framesPerSecond );  
   setInitialLand();
 }
 
@@ -109,14 +136,14 @@ void draw() {
   fill(220);
   textFont(subTitle);  
   textAlign(CENTER, TOP);
-  text("Celluar Automata", 350, 95);
+  text("Cellular Automata", 350, 95);
  
   //stats
   PFont statsTitle = createFont("Arial Bold", 32);
   fill(255);
   textFont(statsTitle);  
   textAlign(LEFT, TOP);
-  text("Statistics", 750, 95);
+  text("Statistics", 715, 95);
   textAlign(LEFT, TOP);
   
   PFont statTitle = createFont("Helvetica", 32);
@@ -136,6 +163,7 @@ void draw() {
   text(str(roundAny(currentTemp, 1)), 725, 350);
   text(str(roundAny(currentTempIncrease, 1)), 725, 470);
   
+  stroke(0);
   //grid
   float y = padding+100;
   for(int i=0; i<gridWidth; i++) {
