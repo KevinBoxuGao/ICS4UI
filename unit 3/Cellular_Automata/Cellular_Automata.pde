@@ -2,7 +2,7 @@ import java.util.Iterator;
 import java.util.HashSet;
 
 //change these
-String climate="arid"; //can be {"temperate", "arid", "dampTropical", "mildMediterranean", "tundra"}
+String climate="arid"; //can be {"polar", "temperate", "arid", "tropical", "mediterranean"}
 int gridWidth = 20;
 int framesPerSecond = 15;
 int numVillages = 10;
@@ -23,13 +23,17 @@ float tempIncreasePerYear = 0.02/12;
 float currentTempIncrease = 0;
 int currentMonth = 0;
 //climate settings
-int a;
-float vs;
-
+int climateAmplitude;
+float climateVS;
+//precipitation settings
 
 //global warming stats
 float getCurrentTemperature(int month) {
-  return -a*cos((PI/12)*(month)) + vs + currentTempIncrease;
+  return climateAmplitude*cos((PI/12)*(month)) + climateVS + currentTempIncrease;
+}
+
+float getPrecipitation(float temperature) {
+  return a*cos((PI/12)*(temperature)) + vs + currentTempIncrease;
 }
 
 //utility functions
@@ -86,24 +90,29 @@ int[] neighbourAverage(int row, int column) {
 
 void setup(){
   //set temperature variables for land
-  //{"temperate", "arid", "dampTropical", "mildMediterranean", "tundra"}
-  if(climate.equals("temperate")) {
-    a = ;
-    vs = ;
+  //{"polar", "temperate", "arid", "tropical", "mediterranean"}
+  if(climate.equals("polar")) {
+    //4 to 25
+    climateAmplitude = -15;
+    climateVS = -10;
+  } else if(climate.equals("temperate")) {
+    //14 to 84
+    climateAmplitude = -17;
+    climateVS = 5;
   } else if(climate.equals("arid")) {
-    a = ;
-    vs = ;
-  } else if(climate.equals("dampTopical")) {
-    a = ;
-    vs = ;
-  } else if(climate.equals("mildMediterranean")) {
-    a = ;
-    vs = ;
-  } else if(climate.equals("tundra")) {
-    a = ;
-    vs = ;
+    //44 to 7
+    climateAmplitude = 8;
+    climateVS = 20;
+  } else if(climate.equals("tropical")) {
+    //216 to 9
+    climateAmplitude = 2;
+    climateVS = 26;
+  } else if(climate.equals("mediterranean")) {
+    //128 to 14
+    climateAmplitude = -8;
+    climateVS = 16;
   } else {
-    println("");
+    println("invalid climate");
     exit();
   }
   
