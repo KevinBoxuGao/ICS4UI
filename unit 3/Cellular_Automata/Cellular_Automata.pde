@@ -5,38 +5,54 @@ import java.util.HashSet;
 String climate="arid"; //can be {"polar", "temperate", "arid", "tropical", "mediterranean"}
 int gridWidth = 20;
 int framesPerSecond = 10;
-int numVillages = 10;
-int sustainabilityThreshHold = 400;
-int villageMovePenalty = 40;
-boolean smarterVillages = true;
+int numVillages = 10; //number of villages initially generated
+int sustainabilityThreshHold = 400; //amount of total health around a village to keep it in place
+int villageMovePenalty = 40; //penalty on land that village moves to
+boolean smarterVillages = false; //boolean to indicate if smarter village movements want to be activated at cost of performance
+
+//can still be changed but it is recommended to not be changed since it could affect realism
+int humanLandImpact = 25; //amount of health humans deplete when using land
+int desertLandImpact = 250; //amount of health deserts deplete when precipitation is 1
 
 //don't change these
 color[][] cellsNow;
 int[][] healthNow;
 int[][] healthNext;
+int[][] villageCoords;
 float cellSize;
 float padding = 50;
-int[][] villageCoords;
 boolean evolution = true; //bool for which phase of evolution is occuring
 
-float currentTemp = 2;
+float currentTemp;
 float tempIncreasePerYear = 0.02/12;
-float currentTempIncrease = 0;
+float currentTempIncrease = 0; //total temperature increase
 int currentMonth = 0;
-float precipitation = getCurrentPrecipitation(0);
+float precipitation;
 
-//climate settings
+//climate variables set by climate
 int climateAmplitude;
 float climateVS;
-//precipitation settings
+//precipitation variables set by climate
 int precipitationAmplitude;
 float precipitationVS;
 
-//global warming stats
+
+//utility functions
+float roundAny(float x, int d) {
+  if (d==0) {
+    return round(x);
+  } 
+  float roundedValue;
+  roundedValue = x * pow(10, d);
+  roundedValue = round(roundedValue);
+  roundedValue = roundedValue / pow(10, d);
+  return roundedValue;
+}
+
+//climate calculations
 float getCurrentTemperature(int month) {
   return climateAmplitude*cos((PI/12)*(month)) + climateVS + currentTempIncrease;
 }
-//precipitation
 float getCurrentPrecipitation(int month) {
   float p = precipitationAmplitude*cos((PI/12)*(month)) + precipitationVS - 75*currentTempIncrease;
   if(p<0) {
@@ -45,23 +61,8 @@ float getCurrentPrecipitation(int month) {
     return p;
   }
 }
-
-//utility functions
-float roundAny(float x, int d) {
-  //code goes here
-  if (d==0) {
-    return round(x);
-  } 
-  float roundedValue;
-  roundedValue = x * pow(10, d);
-  roundedValue = round(roundedValue);
-  roundedValue = roundedValue / pow(10, d);
-  
-  return roundedValue;
-}
-
-//deplete surounding
-int[][] directions = {{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1,-1}, {1,0}, {1,1}};
+//evolution actions
+int[][] directions = {{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1,-1}, {1,0}, {1,1}}; //direction vectors
 void depleteSurrounding(int row, int column, int amount) {
   for(int i=0; i<8; i++) {
     try {
@@ -81,7 +82,7 @@ void depleteSurrounding(int row, int column, int amount) {
     }
   }
 }
-
+//evolution calculations
 int[] neighbourAverage(int row, int column) {
   int neighbours = 0;
   int total = 0;
@@ -102,8 +103,7 @@ int[] neighbourAverage(int row, int column) {
   int[] result = {total, neighbours};
   return result;
 }
-
-int villageDirection(int row, int column) {
+int villageDirection(int row, int column, int largestTotal) {
   int directionIndex = -1;
   int x = row;
   int y = column;
@@ -129,43 +129,44 @@ int villageDirection(int row, int column) {
 }
 
 void setup(){
-  //set temperature variables for land
-  //{"polar", "temperate", "arid", "tropical", "mediterranean"}
+  currentTemp = getCurrentTemperature(0);
+  precipitation = getCurrentPrecipitation(0);
+  //set climate variables for land
+  //climate can be {"polar", "temperate", "arid", "tropical", "mediterranean"}
   if(climate.equals("polar")) {
     climateAmplitude = -15;
     climateVS = -10;
-    //4 to 25
+    //4 low to 25 high
     precipitationAmplitude = -10;
     precipitationVS = 25;
   } else if(climate.equals("temperate")) {
     climateAmplitude = -17;
     climateVS = 5;
-    //14 to 84
+    //14 low to 84 high
     precipitationAmplitude = 30;
     precipitationVS = 44;
   } else if(climate.equals("arid")) {
     climateAmplitude = 8;
     climateVS = 20;
-    //44 to 7
+    //44 low to 7 high
     precipitationAmplitude = 18;
     precipitationVS = 25;
   } else if(climate.equals("tropical")) {
     climateAmplitude = 2;
     climateVS = 26;
-    //216 to 9
+    //216 low to 9 high
     precipitationAmplitude = 103;
     precipitationVS = 112;
   } else if(climate.equals("mediterranean")) {
     climateAmplitude = -8;
     climateVS = 16;
-    //128 to 14
+    //128 low to 14 high
     precipitationAmplitude = 57;
     precipitationVS = 71;
   } else {
     println("invalid climate");
     exit();
   }
-  
   cellsNow = new color[gridWidth][gridWidth];
   healthNow = new int[gridWidth][gridWidth];
   healthNext = new int[gridWidth][gridWidth];
@@ -178,12 +179,6 @@ void setup(){
 
 void draw() {
   background(0,0,255);
-  
-  //sidebar
-  fill(80);
-  noStroke();
-  rect(700, 0, 1200, 800);
-  
   //titles
   PFont Title = createFont("Arial Bold", 64);
   fill(255);
@@ -196,15 +191,20 @@ void draw() {
   textFont(subTitle);  
   textAlign(CENTER, TOP);
   text("Cellular Automata", 350, 95);
- 
+  
   //stats
+  //sidebar for stats
+  fill(80);
+  noStroke();
+  rect(700, 0, 1200, 800);
+  //title
   PFont statsTitle = createFont("Arial Bold", 32);
   fill(255);
   textFont(statsTitle);  
   textAlign(LEFT, TOP);
   text("Statistics", 715, 95);
   textAlign(LEFT, TOP);
-  
+  //headings
   PFont statTitle = createFont("Helvetica", 32);
   fill(255);
   textFont(statTitle);  
@@ -213,7 +213,7 @@ void draw() {
   text("Temperature:", 720, 310);
   textLeading(30);
   text("Total Temperature\nIncrease:", 720, 400);
-
+  //data values
   PFont stat = createFont("Helvetica", 24);
   textFont(stat);
   fill(220);
@@ -222,8 +222,8 @@ void draw() {
   text(str(roundAny(currentTemp, 1)), 725, 350);
   text(str(roundAny(currentTempIncrease, 1)), 725, 470);
   
-  stroke(0);
   //grid
+  stroke(0);
   float y = padding+100;
   for(int i=0; i<gridWidth; i++) {
     for(int j=0; j<gridWidth; j++) {
@@ -237,18 +237,20 @@ void draw() {
 }
 
 void getNextGeneration() {
-  //usage
+  //depletion 
   if(evolution) {
+    //calculate climate stats and data
     currentMonth++;
     currentTempIncrease += tempIncreasePerYear;
     currentTemp = getCurrentTemperature(currentMonth);
     precipitation = getCurrentPrecipitation(currentMonth);
+    //deplete land
     for(int i=0; i<gridWidth; i++) {
       for(int j=0; j<gridWidth; j++) {
         if(cellsNow[i][j] == color(220,220,220)) { //is village 
-          depleteSurrounding(i, j, 25);
+          depleteSurrounding(i, j, humanLandImpact);
         } else if(cellsNow[i][j] == color(237,201,175)) { //is desert 
-          depleteSurrounding(i, j, int(300/precipitation));
+          depleteSurrounding(i, j, int(desertLandImpact/precipitation));
         }
       }
     }
