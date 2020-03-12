@@ -2,39 +2,43 @@ import java.util.Iterator;
 import java.util.HashSet;
 
 //change these
-String climate="arid"; //can be {"temperate", "arid", "dampTropical", "mildMediterranean", "tundra"}
+String climate="arid"; //can be {"polar", "temperate", "arid", "tropical", "mediterranean"}
 int gridWidth = 20;
-int framesPerSecond = 15;
-int numVillages = 10;
-float temperatureImpact = 1;
-int sustainabilityThreshHold = 400;
+int framesPerSecond = 10;
+int numVillages = 10; //number of villages initially generated
+int sustainabilityThreshHold = 400; //amount of total health around a village to keep it in place
+int villageMovePenalty = 40; //penalty on land that village moves to
+boolean smarterVillages = false; //boolean to indicate if smarter village movements want to be activated at cost of performance
+
+//can still be changed but it is recommended to not be changed since it could affect realism
+int humanLandImpact = 25; //amount of health humans deplete when using land
+int desertLandImpact = 250; //amount of health deserts deplete when precipitation is 1
 
 //don't change these
 color[][] cellsNow;
 int[][] healthNow;
 int[][] healthNext;
+int[][] villageCoords;
 float cellSize;
 float padding = 50;
-int[][] villageCoords;
 boolean evolution = true; //bool for which phase of evolution is occuring
 
-float currentTemp = 2;
+float currentTemp;
 float tempIncreasePerYear = 0.02/12;
-float currentTempIncrease = 0;
+float currentTempIncrease = 0; //total temperature increase
 int currentMonth = 0;
-//climate settings
-int a;
-float vs;
+float precipitation;
 
+//climate variables set by climate
+int climateAmplitude;
+float climateVS;
+//precipitation variables set by climate
+int precipitationAmplitude;
+float precipitationVS;
 
-//global warming stats
-float getCurrentTemperature(int month) {
-  return -a*cos((PI/12)*(month)) + vs + currentTempIncrease;
-}
 
 //utility functions
 float roundAny(float x, int d) {
-  //code goes here
   if (d==0) {
     return round(x);
   } 
@@ -42,26 +46,43 @@ float roundAny(float x, int d) {
   roundedValue = x * pow(10, d);
   roundedValue = round(roundedValue);
   roundedValue = roundedValue / pow(10, d);
-  
   return roundedValue;
 }
 
-//deplete surounding
-int[][] directions = {{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1,-1}, {1,0}, {1,1}};
+//climate calculations
+float getCurrentTemperature(int month) {
+  return climateAmplitude*cos((PI/12)*(month)) + climateVS + currentTempIncrease;
+}
+float getCurrentPrecipitation(int month) {
+  float p = precipitationAmplitude*cos((PI/12)*(month)) + precipitationVS - 75*currentTempIncrease;
+  if(p<0) {
+    return 0;
+  } else {
+    return p;
+  }
+}
+//evolution actions
+int[][] directions = {{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1,-1}, {1,0}, {1,1}}; //direction vectors
 void depleteSurrounding(int row, int column, int amount) {
   for(int i=0; i<8; i++) {
     try {
       int n = row+(directions[i][0]);
       int m = column+(directions[i][1]);
-      if(cellsNow[n][m] != color(237,201,175)) { //square isn't a desert
-        healthNow[n][m] -= amount;
-      } 
+      if (cellsNow[row][column] == color(220, 220, 220));
+        if (cellsNow[n][m] != color(237,201,175) && cellsNow[n][m]!=color(220,220,220)){
+          healthNow[n][m] -= amount;
+        }         
+      else {
+        if(cellsNow[n][m] != color(237,201,175)) { //square isn't a desert
+          healthNow[n][m] -= amount;
+        } 
+      }
     } catch(Exception e) {
       continue;
     }
   }
 }
-
+//evolution calculations
 int[] neighbourAverage(int row, int column) {
   int neighbours = 0;
   int total = 0;
@@ -82,31 +103,70 @@ int[] neighbourAverage(int row, int column) {
   int[] result = {total, neighbours};
   return result;
 }
-
+int villageDirection(int row, int column, int largestTotal) {
+  int directionIndex = -1;
+  int x = row;
+  int y = column;
+  for(int j=0; j<8; j++) {
+    try {
+      int newRow = row+(directions[j][0]);
+      int newColumn = column+(directions[j][1]);
+      //don't move to cell with a village already
+      if(cellsNow[newRow][newColumn] != color(220,220,220)) {
+        int[]newNeighbours = neighbourAverage(newRow, newColumn);
+        int total = newNeighbours[0];
+        if(total > largestTotal) {
+          largestTotal = total;
+          x = newRow;
+          y = newColumn;
+        }
+      }
+    } catch(Exception e) {
+      continue;
+    }
+  }
+  return directionIndex;
+}
 
 void setup(){
-  //set temperature variables for land
-  //{"temperate", "arid", "dampTropical", "mildMediterranean", "tundra"}
-  if(climate.equals("temperate")) {
-    a = ;
-    vs = ;
+  currentTemp = getCurrentTemperature(0);
+  precipitation = getCurrentPrecipitation(0);
+  //set climate variables for land
+  //climate can be {"polar", "temperate", "arid", "tropical", "mediterranean"}
+  if(climate.equals("polar")) {
+    climateAmplitude = -15;
+    climateVS = -10;
+    //4 low to 25 high
+    precipitationAmplitude = -10;
+    precipitationVS = 25;
+  } else if(climate.equals("temperate")) {
+    climateAmplitude = -17;
+    climateVS = 5;
+    //14 low to 84 high
+    precipitationAmplitude = 30;
+    precipitationVS = 44;
   } else if(climate.equals("arid")) {
-    a = ;
-    vs = ;
-  } else if(climate.equals("dampTopical")) {
-    a = ;
-    vs = ;
-  } else if(climate.equals("mildMediterranean")) {
-    a = ;
-    vs = ;
-  } else if(climate.equals("tundra")) {
-    a = ;
-    vs = ;
+    climateAmplitude = 8;
+    climateVS = 20;
+    //44 low to 7 high
+    precipitationAmplitude = 18;
+    precipitationVS = 25;
+  } else if(climate.equals("tropical")) {
+    climateAmplitude = 2;
+    climateVS = 26;
+    //216 low to 9 high
+    precipitationAmplitude = 103;
+    precipitationVS = 112;
+  } else if(climate.equals("mediterranean")) {
+    climateAmplitude = -8;
+    climateVS = 16;
+    //128 low to 14 high
+    precipitationAmplitude = 57;
+    precipitationVS = 71;
   } else {
-    println("");
+    println("invalid climate");
     exit();
   }
-  
   cellsNow = new color[gridWidth][gridWidth];
   healthNow = new int[gridWidth][gridWidth];
   healthNext = new int[gridWidth][gridWidth];
@@ -119,12 +179,6 @@ void setup(){
 
 void draw() {
   background(0,0,255);
-  
-  //sidebar
-  fill(80);
-  noStroke();
-  rect(700, 0, 1200, 800);
-  
   //titles
   PFont Title = createFont("Arial Bold", 64);
   fill(255);
@@ -137,15 +191,20 @@ void draw() {
   textFont(subTitle);  
   textAlign(CENTER, TOP);
   text("Cellular Automata", 350, 95);
- 
+  
   //stats
+  //sidebar for stats
+  fill(80);
+  noStroke();
+  rect(700, 0, 1200, 800);
+  //title
   PFont statsTitle = createFont("Arial Bold", 32);
   fill(255);
   textFont(statsTitle);  
   textAlign(LEFT, TOP);
   text("Statistics", 715, 95);
   textAlign(LEFT, TOP);
-  
+  //headings
   PFont statTitle = createFont("Helvetica", 32);
   fill(255);
   textFont(statTitle);  
@@ -154,7 +213,7 @@ void draw() {
   text("Temperature:", 720, 310);
   textLeading(30);
   text("Total Temperature\nIncrease:", 720, 400);
-
+  //data values
   PFont stat = createFont("Helvetica", 24);
   textFont(stat);
   fill(220);
@@ -163,8 +222,8 @@ void draw() {
   text(str(roundAny(currentTemp, 1)), 725, 350);
   text(str(roundAny(currentTempIncrease, 1)), 725, 470);
   
-  stroke(0);
   //grid
+  stroke(0);
   float y = padding+100;
   for(int i=0; i<gridWidth; i++) {
     for(int j=0; j<gridWidth; j++) {
@@ -178,17 +237,20 @@ void draw() {
 }
 
 void getNextGeneration() {
-  //usage
+  //depletion 
   if(evolution) {
+    //calculate climate stats and data
     currentMonth++;
     currentTempIncrease += tempIncreasePerYear;
     currentTemp = getCurrentTemperature(currentMonth);
+    precipitation = getCurrentPrecipitation(currentMonth);
+    //deplete land
     for(int i=0; i<gridWidth; i++) {
       for(int j=0; j<gridWidth; j++) {
         if(cellsNow[i][j] == color(220,220,220)) { //is village 
-          depleteSurrounding(i, j, int(currentTemp*temperatureImpact));
+          depleteSurrounding(i, j, humanLandImpact);
         } else if(cellsNow[i][j] == color(237,201,175)) { //is desert 
-          depleteSurrounding(i, j, int(currentTemp*temperatureImpact));
+          depleteSurrounding(i, j, int(desertLandImpact/precipitation));
         }
       }
     }
@@ -203,7 +265,7 @@ void getNextGeneration() {
       int column = villageCoords[i][1];
       int[]neighbours = neighbourAverage(row, column);
       int largestTotal = neighbours[0];
-      if(true) {
+      if(largestTotal < sustainabilityThreshHold) {
         int x = row;
         int y = column;
         for(int j=0; j<8; j++) {
@@ -229,18 +291,27 @@ void getNextGeneration() {
           villageCoords[i][1] = y;
           cellsNow[row][column] = color(200-(healthNow[row][column]*2), 255, 0);
           cellsNow[x][y] = color(220,220,220);
-          healthNow[x][y] = healthNow[x][y] / 2;
+          int newHealth = (healthNow[x][y] - villageMovePenalty) / 2;
+          healthNow[x][y] = (newHealth > 0) ? newHealth: 0;
+          println(healthNow[x][y]);
+          
         }
       }
     }
     //replenish land
     for(int i=0; i<gridWidth; i++) {
       for(int j=0; j<gridWidth; j++) {
-        //is not desert or village
-        if(cellsNow[i][j] != color(220,220,220) && cellsNow[i][j] != color(237,201,175)) { 
+        //is not desert
+        if(cellsNow[i][j] == color(220,220,220)) {
           int[] neighbours = neighbourAverage(i, j);
-          int healthTotal = healthNow[i][j] + int((neighbours[0] / neighbours[1])/(currentTemp));
+          int healthTotal = healthNow[i][j] + int((precipitation/4)*((neighbours[0] / neighbours[1])+1)/2);
           healthNext[i][j] = (healthTotal > 100) ? 100 : healthTotal;
+        } else {
+          if(cellsNow[i][j] != color(237,201,175)) { 
+            int[] neighbours = neighbourAverage(i, j);
+            int healthTotal = healthNow[i][j] + int((precipitation/4)*((neighbours[0] / neighbours[1])+1));
+            healthNext[i][j] = (healthTotal > 100) ? 100 : healthTotal;
+          }
         }
       }
     }
@@ -284,7 +355,7 @@ void setInitialLand() {
   if(numVillages >= cellsNum) { //there are villages equal or more than possible tiles
     for(int i=0; i<gridWidth; i++) {
       for(int j=0; j<gridWidth; j++) {
-        healthNow[i][j] = healthNow[i][j] / 2;
+        healthNow[i][j] = (healthNow[i][j] / 4) - villageMovePenalty;
         cellsNow[i][j] = color(220,220,220);
       }
     }
